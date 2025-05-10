@@ -3,11 +3,25 @@ package handlers
 import (
 	"encoding/json"
 	"fap-server/models"
-	"fmt"
+	"fap-server/services"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
-func AddUserHandler(w http.ResponseWriter, r *http.Request) {
+type UserHandler struct {
+	service *services.UserService
+	validate *validator.Validate
+}
+
+func NewUserHandler(service *services.UserService) *UserHandler {
+	return &UserHandler{
+		service: service,
+		validate: validator.New(),
+	}
+}
+
+func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -30,23 +44,25 @@ func AddUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.LoginName == "" || user.Password.Password == "" || 
-	   user.FirstName == "" || user.LastName == "" {
+	if err := h.validate.Struct(user); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(models.Response{
 			Result:  false,
-			Message: "Missing required fields",
+			Message: err.Error(),
 		})
 		return
 	}
 
-	// todo call the user service to add the user
-	// For now, just print the user to the console
-	fmt.Printf("Received user: %+v\n", user)
+	response, err := h.service.AddUser(user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(models.Response{
+			Result:  false,
+			Message: err.Error(),
+		})
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(models.Response{
-		Result:  true,
-		Message: "",
-	})
+	json.NewEncoder(w).Encode(response)
 }
