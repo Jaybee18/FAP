@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type User struct {
 	LoginName string   `json:"loginName" validate:"required"`
 	Password  Password `json:"passwort" validate:"required"`
@@ -21,7 +23,24 @@ type Email struct {
 	Address string `json:"adresse" validate:"email"`
 }
 
-type Response struct {
+type AddUserResponse struct {
 	Result  bool   `json:"ergebnis"`
 	Message string `json:"meldung"`
+}
+
+type LoginRequest struct {
+	LoginName string `json:"loginName" validate:"required"`
+	Password struct {
+		Password string `json:"passwort"`
+	} `json:"passwort"`
+}
+
+type LoginResponse struct {
+	SessionID string `json:"sessionID"`
+}
+
+type Session struct {
+	ID string
+	UserID string
+	ExpiresAt time.Time
 }

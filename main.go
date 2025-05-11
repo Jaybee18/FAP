@@ -13,6 +13,7 @@ func main() {
 		userHandler := handlers.NewUserHandler(userService)
 	
 		// Setup routes
+		http.HandleFunc("/FAPServer/service/fapservice/login", userHandler.Login)
 		http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
 	
 		// Start server
