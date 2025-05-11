@@ -15,6 +15,7 @@ func main() {
 		// Setup routes
 		http.HandleFunc("/FAPServer/service/fapservice/login", userHandler.Login)
 		http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
+		http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
 	
 		// Start server
 		fmt.Println("Server starting on :8080...")

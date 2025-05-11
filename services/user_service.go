@@ -64,6 +64,27 @@ func (s *UserService) Login(loginName, password string) (string, error) {
 	return sessionID, nil
 }
 
+func (s *UserService) GetUser(loginName, sessionID string) (models.User, error) {
+    s.mu.RLock()
+    defer s.mu.RUnlock()
+
+    userID, err := s.ValidateSession(sessionID)
+    if err != nil {
+        return models.User{}, err
+    }
+
+    if loginName != "" && loginName != userID {
+        return models.User{}, errors.New("unauthorized access")
+    }
+
+    user, exists := s.users[userID]
+    if !exists {
+        return models.User{}, errors.New("user not found")
+    }
+
+    return user, nil
+}
+
 func (s *UserService) ValidateSession(sessionID string) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -78,15 +99,4 @@ func (s *UserService) ValidateSession(sessionID string) (string, error) {
     }
 
     return session.UserID, nil
-}
-
-func (s *UserService) GetUser(loginName string) (models.User, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	user, exists := s.users[loginName]
-	if !exists {
-		return models.User{}, errors.New("user not found")
-	}
-	return user, nil
 }
