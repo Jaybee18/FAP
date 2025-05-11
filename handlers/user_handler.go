@@ -67,50 +67,6 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (h *UserHandler) Login( w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Method not allowed",
-		})
-		return
-	}
-
-    var loginReq models.LoginRequest
-    if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": "Invalid request format",
-        })
-        return
-    }
-
-	if err := h.validate.Struct(loginReq); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": err.Error(),
-        })
-        return
-	}
-
-    sessionID, err := h.service.Login(loginReq.LoginName, loginReq.Password.Password)
-    if err != nil {
-        w.WriteHeader(http.StatusUnauthorized)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": err.Error(),
-        })
-        return
-    }
-
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(models.LoginResponse{
-        SessionID: sessionID,
-    })
-}
-
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
 

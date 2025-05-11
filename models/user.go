@@ -59,3 +59,12 @@ type Location struct {
     Latitude  float64 `json:"breitengrad"`
     Longitude float64 `json:"laengengrad"`
 }
+
+type LogoutRequest struct {
+    LoginName string `json:"loginName" validate:"required"`
+    Session   string `json:"sitzung" validate:"required"`
+}
+
+type LogoutResponse struct {
+    Result bool `json:"ergebnis"`
+}

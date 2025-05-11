@@ -85,6 +85,32 @@ func (s *UserService) GetUser(loginName, sessionID string) (models.User, error) 
     return user, nil
 }
 
+func (s *UserService) Logout(sessionID, loginName string) bool {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+
+    // Validate the session belongs to the user
+    if session, exists := s.sessions[sessionID]; exists {
+        if session.UserID == loginName {
+            delete(s.sessions, sessionID)
+            return true
+        }
+    }
+    return false
+}
+
+func (s *UserService) CleanupSessions() {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    
+    now := time.Now()
+    for id, session := range s.sessions {
+        if now.After(session.ExpiresAt) {
+            delete(s.sessions, id)
+        }
+    }
+}
+
 func (s *UserService) ValidateSession(sessionID string) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
