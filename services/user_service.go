@@ -126,3 +126,14 @@ func (s *UserService) ValidateSession(sessionID string) (string, error) {
 
     return session.UserID, nil
 }
+
+func (s *UserService) NameTaken(name string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if _, ok := s.users[name]; !ok {
+		return false
+	}
+
+	return true
+}

@@ -20,6 +20,7 @@ func main() {
 
 		http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
 		http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
+		http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
 	
 		go func() {
 			ticker := time.NewTicker(1 * time.Hour)
