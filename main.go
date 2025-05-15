@@ -13,6 +13,7 @@ func main() {
 		userService := services.NewUserService()
 		authHandler := handlers.NewAuthHandler(userService)
 		userHandler := handlers.NewUserHandler(userService)
+		placeHandler := handlers.NewPlaceHandler(userService)
 	
 		// Setup routes
 		http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.Login)
@@ -21,6 +22,8 @@ func main() {
 		http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
 		http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
 		http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
+
+		http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", placeHandler.GetStandortPerAdresseHandler)
 	
 		go func() {
 			ticker := time.NewTicker(1 * time.Hour)
