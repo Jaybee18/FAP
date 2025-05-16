@@ -9,22 +9,33 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 )
 
+type GeoJSONResponse struct {
+	Features []Feature `json:"features"`
+}
+
+type Feature struct {
+	Geometry Geometry `json:"geometry"`
+}
+
+type Geometry struct {
+	Coordinates []float64 `json:"coordinates"`
+}
+
 type EncodedAddress struct {
-	Longitude float32 `json:"lon"`
-	Latitude float32 `json:"lat"`
+	Longitude float64 `json:"lon"`
+	Latitude  float64 `json:"lat"`
 }
 
 type PlaceHandler struct {
-	service *services.UserService
+	service  *services.UserService
 	validate *validator.Validate
 }
 
 func NewPlaceHandler(service *services.UserService) *PlaceHandler {
 	return &PlaceHandler{
-		service: service,
+		service:  service,
 		validate: validator.New(),
 	}
 }
@@ -50,13 +61,13 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 	geoapifyBaseUrl := "https://api.geoapify.com/v1/geocode/search"
 	params := url.Values{}
 	params.Add("text", fmt.Sprintf("%s, %s, %s, %s", street, postalCode, place, country))
-	params.Add("apiKey", os.Getenv("14c70f396ee04ffeab069ef7167d37ea"))
+	params.Add("apiKey", "14c70f396ee04ffeab069ef7167d37ea")
 	geoapifyUrl := fmt.Sprintf("%s?%s", geoapifyBaseUrl, params.Encode())
 
 	geoapifyResponse, geoapifyError := http.Get(geoapifyUrl)
 	defer geoapifyResponse.Body.Close()
 
-	if geoapifyResponse.StatusCode == http.StatusOK || geoapifyError != nil {
+	if geoapifyResponse.StatusCode != http.StatusOK || geoapifyError != nil {
 		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -67,14 +78,28 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 		log.Fatalf("Error retrieving coordinates %v", readingError)
 	}
 
-	var coordinates []EncodedAddress
-	parsingError := json.Unmarshal(bodyAsBytes, &coordinates)
+	var geoapifyJson GeoJSONResponse
+	parsingError := json.Unmarshal(bodyAsBytes, &geoapifyJson)
 
 	if parsingError != nil {
 		log.Fatalf("Error retrieving information from body %v", parsingError)
 	}
 
-	coordinatesJson, marshalError := json.Marshal(coordinates[0])
+	features := geoapifyJson.Features
+
+	if len(features) < 1 {
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	coordinates := features[0].Geometry.Coordinates
+
+	encodedAdress := &EncodedAddress{
+		Longitude: coordinates[0],
+		Latitude:  coordinates[1],
+	}
+
+	coordinatesJson, marshalError := json.Marshal(encodedAdress)
 
 	if marshalError != nil {
 		http.Error(response, "Internal server error", http.StatusInternalServerError)
