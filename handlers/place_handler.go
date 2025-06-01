@@ -25,7 +25,6 @@ func NewPlaceHandler(service *services.UserService) *PlaceHandler {
 	}
 }
 
-// TODO request body validation
 func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPut {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
@@ -44,6 +43,17 @@ func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request 
 	if err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
+		return
+	}
+
+	if err := p.validate.Struct(req); err != nil {
+		fmt.Println(err)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Bad request"), http.StatusBadRequest)
+		return
+	}
+
+	if !p.service.ValidSession(req.LoginName, req.SessionId) {
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Session ist invalide"), http.StatusUnauthorized)
 		return
 	}
 

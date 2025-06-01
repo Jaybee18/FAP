@@ -35,6 +35,6 @@ type Standort struct {
 }
 
 type Location struct {
-	Latitude  float64 `json:"breitengrad"`
-	Longitude float64 `json:"laengengrad"`
+	Latitude  float64 `json:"breitengrad" validate:"required"`
+	Longitude float64 `json:"laengengrad" validate:"required"`
 }

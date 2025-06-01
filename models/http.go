@@ -33,9 +33,9 @@ type GetUsersResponse struct {
 }
 
 type SetStandortRequest struct {
-	LoginName string   `json:"loginName"`
-	SessionId string   `json:"sitzung"`
-	Location  Location `json:"standort"`
+	LoginName string   `json:"loginName" validate:"required"`
+	SessionId string   `json:"sitzung" validate:"required"`
+	Location  Location `json:"standort" validate:"required"`
 }
 
 type GeoJSONResponse struct {
