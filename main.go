@@ -9,32 +9,33 @@ import (
 )
 
 func main() {
-		// Initialize dependencies
-		userService := services.NewUserService()
-		authHandler := handlers.NewAuthHandler(userService)
-		userHandler := handlers.NewUserHandler(userService)
-		placeHandler := handlers.NewPlaceHandler(userService)
-	
-		// Setup routes
-		http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.Login)
-		http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.Logout)
+	// Initialize dependencies
+	userService := services.NewUserService()
+	authHandler := handlers.NewAuthHandler(userService)
+	userHandler := handlers.NewUserHandler(userService)
+	placeHandler := handlers.NewPlaceHandler(userService)
 
-		http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
-		http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
-		http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
+	// Setup routes
+	http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.Login)
+	http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.Logout)
 
-		http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", placeHandler.GetStandortPerAdresseHandler)
-	
-		go func() {
-			ticker := time.NewTicker(1 * time.Hour)
-			for range ticker.C {
-				userService.CleanupSessions()
-			}
-		}()
-		
-		// Start server
-		fmt.Println("Server starting on :8080...")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
-			fmt.Printf("Server error: %v\n", err)
+	http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
+	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
+	http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
+
+	http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", placeHandler.GetStandortPerAdresseHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/getOrt", placeHandler.GetOrtHandler)
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		for range ticker.C {
+			userService.CleanupSessions()
 		}
+	}()
+
+	// Start server
+	fmt.Println("Server starting on :8080...")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		fmt.Printf("Server error: %v\n", err)
+	}
 }

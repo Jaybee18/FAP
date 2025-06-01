@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fap-server/services"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type GeoJSONResponse struct {
@@ -108,4 +109,39 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 
 	response.Header().Set("content-type", "application/json")
 	response.Write(coordinatesJson)
+}
+
+func (h *PlaceHandler) GetOrtHandler(response http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := request.URL.Query()
+	postalcode := query.Get("postalcode")
+	username := query.Get("username")
+
+	baseUrl := "http://api.geonames.org/postalCodeSearchJSON"
+	params := url.Values{}
+	params.Add("postalcode", postalcode)
+	params.Add("username", username)
+	requestUrl := fmt.Sprintf("%s?%s", baseUrl, params.Encode())
+
+	resp, err := http.Get(requestUrl)
+	defer resp.Body.Close()
+	// only give out internal server errors that are actually caused on our side
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.Write(rawBody)
 }
