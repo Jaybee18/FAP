@@ -4,28 +4,13 @@ import (
 	"encoding/json"
 	"fap-server/models"
 	"fap-server/pkg"
-	"fap-server/services"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-
-	"github.com/go-playground/validator/v10"
 )
 
-type PlaceHandler struct {
-	service  *services.UserService
-	validate *validator.Validate
-}
-
-func NewPlaceHandler(service *services.UserService) *PlaceHandler {
-	return &PlaceHandler{
-		service:  service,
-		validate: validator.New(),
-	}
-}
-
-func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request *http.Request) {
+func SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPut {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
@@ -46,18 +31,18 @@ func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request 
 		return
 	}
 
-	if err := p.validate.Struct(req); err != nil {
+	if err := validator.Struct(req); err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Bad request"), http.StatusBadRequest)
 		return
 	}
 
-	if !p.service.ValidSession(req.LoginName, req.SessionId) {
+	if !userService.ValidSession(req.LoginName, req.SessionId) {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Session ist invalide"), http.StatusUnauthorized)
 		return
 	}
 
-	err = p.service.SetStandortOfUser(req.LoginName, req.Location)
+	err = userService.SetStandortOfUser(req.LoginName, req.Location)
 	if err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
@@ -70,7 +55,7 @@ func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request 
 	})
 }
 
-func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request *http.Request) {
+func GetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
@@ -86,12 +71,12 @@ func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request 
 		return
 	}
 
-	if !p.service.ValidSession(loginName, sessionId) {
+	if !userService.ValidSession(loginName, sessionId) {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Session ist invalide"), http.StatusUnauthorized)
 		return
 	}
 
-	location, err := p.service.GetStandortOfUser(searchName)
+	location, err := userService.GetStandortOfUser(searchName)
 	if err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
@@ -112,7 +97,7 @@ func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request 
 	response.Write(rawJson)
 }
 
-func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Request) {
+func GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
@@ -151,7 +136,7 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 // making any changes or processing it in any way. This means that the responses are
 // probably different from the rest of the api, but the way the endpoint is described
 // it is only meant to be a proxy to the geonames api.
-func (h *PlaceHandler) GetOrtHandler(response http.ResponseWriter, request *http.Request) {
+func GetOrtHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return

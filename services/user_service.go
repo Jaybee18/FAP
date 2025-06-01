@@ -23,10 +23,10 @@ func NewUserService() *UserService {
 	}
 }
 
-func (u *UserService) UserExists(username string) bool {
-	u.mu.RLock()
-	defer u.mu.RUnlock()
-	_, ok := u.users[username]
+func (s *UserService) UserExists(username string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.users[username]
 	return ok
 }
 
@@ -111,12 +111,12 @@ func (s *UserService) ValidSession(username string, sessionID string) bool {
 	return exists && session.UserID == username && time.Now().Before(session.ExpiresAt)
 }
 
-func (u *UserService) GetStandortOfUser(username string) (*models.Location, error) {
-	u.mu.RLock()
-	defer u.mu.RUnlock()
+func (s *UserService) GetStandortOfUser(username string) (*models.Location, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	var user models.User
-	for name, u := range u.users {
+	for name, u := range s.users {
 		if name == username {
 			user = u
 			break
@@ -139,16 +139,16 @@ func (u *UserService) GetStandortOfUser(username string) (*models.Location, erro
 	return &location, nil
 }
 
-func (u *UserService) SetStandortOfUser(username string, location models.Location) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (s *UserService) SetStandortOfUser(username string, location models.Location) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	user, ok := u.users[username]
+	user, ok := s.users[username]
 	if !ok {
 		return fmt.Errorf("no user exists with name %s", username)
 	}
 
 	user.Location = &location
-	u.users[username] = user
+	s.users[username] = user
 	return nil
 }

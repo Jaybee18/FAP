@@ -2,38 +2,23 @@ package main
 
 import (
 	"fap-server/handlers"
-	"fap-server/services"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 func main() {
-	// Initialize dependencies
-	userService := services.NewUserService()
-	authHandler := handlers.NewAuthHandler(userService)
-	userHandler := handlers.NewUserHandler(userService)
-	placeHandler := handlers.NewPlaceHandler(userService)
-
 	// Setup routes
-	http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.LoginHandler)
-	http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.LogoutHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/login", handlers.LoginHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/logout", handlers.LogoutHandler)
 
-	http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
-	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUsers)
-	http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
+	http.HandleFunc("/FAPServer/service/fapservice/addUser", handlers.AddUserHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", handlers.GetUsersHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", handlers.CheckLoginNameHandler)
 
-	http.HandleFunc("/FAPServer/service/fapservice/getStandort", placeHandler.GetStandortHandler)
-	http.HandleFunc("/FAPServer/service/fapservice/setStandort", placeHandler.SetStandortHandler)
-	http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", placeHandler.GetStandortPerAdresseHandler)
-	http.HandleFunc("/FAPServer/service/fapservice/getOrt", placeHandler.GetOrtHandler)
-
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		for range ticker.C {
-			userService.CleanupSessions()
-		}
-	}()
+	http.HandleFunc("/FAPServer/service/fapservice/getStandort", handlers.GetStandortHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/setStandort", handlers.SetStandortHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", handlers.GetStandortPerAdresseHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/getOrt", handlers.GetOrtHandler)
 
 	// Start server
 	fmt.Println("Server starting on :8080...")

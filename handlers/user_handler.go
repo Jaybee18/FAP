@@ -7,23 +7,28 @@ import (
 	"fap-server/services"
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/go-playground/validator/v10"
+	val "github.com/go-playground/validator/v10"
 )
 
-type UserHandler struct {
-	service  *services.UserService
-	validate *validator.Validate
+// Singleton validator instance for handlers package
+var validator = val.New()
+
+// Singleton user service instance for handlers package
+var userService = services.NewUserService()
+
+func init() {
+	// Set up an async cleanup loop at the initialisation of the package
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		for range ticker.C {
+			userService.CleanupSessions()
+		}
+	}()
 }
 
-func NewUserHandler(service *services.UserService) *UserHandler {
-	return &UserHandler{
-		service:  service,
-		validate: validator.New(),
-	}
-}
-
-func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
+func AddUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -39,13 +44,13 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.validate.Struct(user); err != nil {
+	if err := validator.Struct(user); err != nil {
 		fmt.Println(err)
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
 		return
 	}
 
-	userExists := h.service.UserExists(user.LoginName)
+	userExists := userService.UserExists(user.LoginName)
 	if userExists {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", fmt.Sprintf("Benutzer mit dem Namen %q existiert bereits", user.LoginName)), http.StatusConflict)
 		return
@@ -53,7 +58,7 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 
 	// Return value can be ignored since the user cannot already exist
 	// because that was checked above
-	_ = h.service.AddUser(user)
+	_ = userService.AddUser(user)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
@@ -61,7 +66,7 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -77,12 +82,12 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.service.ValidSession(loginName, sessionId) {
+	if !userService.ValidSession(loginName, sessionId) {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
-	users := h.service.GetAllUsers()
+	users := userService.GetAllUsers()
 	var resp models.GetUsersResponse
 	for _, user := range users {
 		resp.UserList = append(resp.UserList, models.GetUserResponseUser{
@@ -102,7 +107,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Write(rawJson)
 }
 
-func (h *UserHandler) CheckLoginName(response http.ResponseWriter, request *http.Request) {
+func CheckLoginNameHandler(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 
 	if request.Method != http.MethodGet {
@@ -119,7 +124,7 @@ func (h *UserHandler) CheckLoginName(response http.ResponseWriter, request *http
 
 	response.WriteHeader(http.StatusOK)
 
-	if h.service.UserExists(id) {
+	if userService.UserExists(id) {
 		json.NewEncoder(response).Encode(map[string]string{
 			"ergebnis": "false",
 		})
