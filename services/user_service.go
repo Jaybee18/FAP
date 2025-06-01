@@ -33,8 +33,8 @@ func (u *UserService) UserExists(username string) bool {
 // Adds a user but only if a user with the same login name doesn't already
 // exist. Returns true if the user was created and false otherwise
 func (s *UserService) AddUser(user models.User) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if _, exists := s.users[user.LoginName]; exists {
 		return false
@@ -48,8 +48,8 @@ func (s *UserService) AddUser(user models.User) bool {
 // Only returns a valid session id when user exists and credentials are correct.
 // Otherwise an empty string is returned
 func (s *UserService) Login(loginName, password string) string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	user, exists := s.users[loginName]
 	if !exists {
@@ -140,8 +140,8 @@ func (u *UserService) GetStandortOfUser(username string) (*models.Location, erro
 }
 
 func (u *UserService) SetStandortOfUser(username string, location models.Location) error {
-	u.mu.RLock()
-	defer u.mu.RUnlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	user, ok := u.users[username]
 	if !ok {
