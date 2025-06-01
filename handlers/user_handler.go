@@ -119,7 +119,7 @@ func (h *UserHandler) CheckLoginName(response http.ResponseWriter, request *http
 
 	response.WriteHeader(http.StatusOK)
 
-	if h.service.NameTaken(id) {
+	if h.service.UserExists(id) {
 		json.NewEncoder(response).Encode(map[string]string{
 			"ergebnis": "false",
 		})

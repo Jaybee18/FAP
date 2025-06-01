@@ -152,14 +152,3 @@ func (u *UserService) SetStandortOfUser(username string, location models.Locatio
 	u.users[username] = user
 	return nil
 }
-
-func (s *UserService) NameTaken(name string) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	if _, ok := s.users[name]; !ok {
-		return false
-	}
-
-	return true
-}
