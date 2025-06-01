@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"fap-server/models"
 	"fap-server/pkg"
 	"fmt"
@@ -71,27 +70,6 @@ func (s *UserService) Login(loginName, password string) string {
 	return sessionID
 }
 
-func (s *UserService) GetUser(loginName, sessionID string) (models.User, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	userID, err := s.ValidateSession(sessionID)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	if loginName != "" && loginName != userID {
-		return models.User{}, errors.New("unauthorized access")
-	}
-
-	user, exists := s.users[userID]
-	if !exists {
-		return models.User{}, errors.New("user not found")
-	}
-
-	return user, nil
-}
-
 func (s *UserService) GetAllUsers() map[string]models.User {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -123,23 +101,6 @@ func (s *UserService) CleanupSessions() {
 			delete(s.sessions, id)
 		}
 	}
-}
-
-// TODO delete; die methode funktioniert falsch; errors werden nur bei errors geworfen wtf
-func (s *UserService) ValidateSession(sessionID string) (string, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	session, exists := s.sessions[sessionID]
-	if !exists {
-		return "", errors.New("invalid session")
-	}
-
-	if time.Now().After(session.ExpiresAt) {
-		return "", errors.New("session expired")
-	}
-
-	return session.UserID, nil
 }
 
 func (s *UserService) ValidSession(username string, sessionID string) bool {
