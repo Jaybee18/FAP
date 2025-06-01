@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fap-server/models"
+	"fap-server/pkg"
 	"fap-server/services"
 	"fmt"
 	"net/http"
@@ -26,67 +27,52 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Method not allowed",
-		})
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Invalid request body",
-		})
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Malformed json in request body"), http.StatusBadRequest)
 		return
 	}
 
 	if err := h.validate.Struct(user); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: err.Error(),
-		})
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
 		return
 	}
 
-	response, err := h.service.AddUser(user)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: err.Error(),
-		})
-		return
+	userExists := h.service.UserExists(user.LoginName)
+	if userExists {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", fmt.Sprintf("Benutzer mit dem Namen %q existiert bereits", user.LoginName)), http.StatusConflict)
 	}
+
+	// Return value can be ignored since the user cannot already exist
+	// because that was checked above
+	_ = h.service.AddUser(user)
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]string{
+		"ergebnis": "erfolgreich",
+	})
 }
 
 func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Method not allowed",
-		})
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Get session from query param
 	sessionID := r.URL.Query().Get("session")
 	if sessionID == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "session ID required",
-		})
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "session ist ein erforderlicher parameter"), http.StatusBadRequest)
 		return
 	}
 
@@ -94,7 +80,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	loginName := r.URL.Query().Get("login")
 
 	if !h.service.ValidSession(loginName, sessionID) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unauthorized"), http.StatusUnauthorized)
 		return
 	}
 
@@ -110,7 +96,7 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	rawJson, err := json.Marshal(resp)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -119,17 +105,17 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CheckLoginName(response http.ResponseWriter, request *http.Request) {
-	response.Header().Set("content-type", "application/json")
+	response.Header().Set("Content-Type", "application/json")
 
 	if request.Method != http.MethodGet {
-		http.Error(response, "Method not allowed", http.StatusMethodNotAllowed)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := request.URL.Query().Get("id")
 
 	if id == "" {
-		http.Error(response, "id search param is required", http.StatusBadRequest)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "id search param is required"), http.StatusBadRequest)
 		return
 	}
 

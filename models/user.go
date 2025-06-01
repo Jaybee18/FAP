@@ -24,8 +24,8 @@ type Email struct {
 	Address string `json:"adresse" validate:"email"`
 }
 
-type AddUserResponse struct {
-	Result  bool   `json:"ergebnis"`
+type GenericResponse struct {
+	Result  string `json:"ergebnis"`
 	Message string `json:"meldung"`
 }
 

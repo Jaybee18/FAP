@@ -3,10 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"fap-server/models"
+	"fap-server/pkg"
 	"fap-server/services"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -45,14 +45,14 @@ func NewPlaceHandler(service *services.UserService) *PlaceHandler {
 // TODO request body validation
 func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPut {
-		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
 	rawBody, err := io.ReadAll(request.Body)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -60,14 +60,14 @@ func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request 
 	err = json.Unmarshal(rawBody, &req)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
 	err = p.service.SetStandortOfUser(req.LoginName, req.Location)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request 
 
 func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
-		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -89,19 +89,19 @@ func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request 
 	searchName := query.Get("id")
 
 	if loginName == "" || sessionId == "" || searchName == "" {
-		http.Error(response, "login, session und id sind erforderliche query parameter", http.StatusBadRequest)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "login, session und id sind erforderliche query parameter"), http.StatusBadRequest)
 		return
 	}
 
 	if !p.service.ValidSession(loginName, sessionId) {
-		http.Error(response, "Session is invalid", http.StatusUnauthorized)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Session ist invalide"), http.StatusUnauthorized)
 		return
 	}
 
 	location, err := p.service.GetStandortOfUser(searchName)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request 
 	rawJson, err := json.Marshal(standort)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request 
 
 func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
-		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 	street := query.Get("strasse")
 
 	if country == "" || postalCode == "" || place == "" || street == "" {
-		http.Error(response, "land, plz, ort und strasse sind erforderliche query parameter", http.StatusBadRequest)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "land, plz, ort und strasse sind erforderliche query parameter"), http.StatusBadRequest)
 		return
 	}
 
@@ -147,27 +147,28 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 	defer geoapifyResponse.Body.Close()
 
 	if geoapifyResponse.StatusCode != http.StatusOK || geoapifyError != nil {
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
-	bodyAsBytes, readingError := io.ReadAll(geoapifyResponse.Body)
-
-	if readingError != nil {
-		log.Fatalf("Error retrieving coordinates %v", readingError)
+	bodyAsBytes, err := io.ReadAll(geoapifyResponse.Body)
+	if err != nil {
+		fmt.Println(err)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
+		return
 	}
 
 	var geoapifyJson GeoJSONResponse
-	parsingError := json.Unmarshal(bodyAsBytes, &geoapifyJson)
-
-	if parsingError != nil {
-		log.Fatalf("Error retrieving information from body %v", parsingError)
+	err = json.Unmarshal(bodyAsBytes, &geoapifyJson)
+	if err != nil {
+		fmt.Println(err)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
+		return
 	}
 
 	features := geoapifyJson.Features
-
 	if len(features) < 1 {
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -178,10 +179,11 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 		Latitude:  coordinates[1],
 	}
 
-	coordinatesJson, marshalError := json.Marshal(encodedAdress)
+	coordinatesJson, err := json.Marshal(encodedAdress)
 
-	if marshalError != nil {
-		http.Error(response, "Internal server error", http.StatusInternalServerError)
+	if err != nil {
+		fmt.Println(err)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
@@ -191,7 +193,7 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 
 func (h *PlaceHandler) GetOrtHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
-		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -210,13 +212,13 @@ func (h *PlaceHandler) GetOrtHandler(response http.ResponseWriter, request *http
 	// only give out internal server errors that are actually caused on our side
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 	rawBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 

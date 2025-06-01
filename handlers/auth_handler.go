@@ -3,101 +3,89 @@ package handlers
 import (
 	"encoding/json"
 	"fap-server/models"
+	"fap-server/pkg"
 	"fap-server/services"
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
-    service *services.UserService
+	service  *services.UserService
 	validate *validator.Validate
 }
 
 func NewAuthHandler(service *services.UserService) *AuthHandler {
-    return &AuthHandler{
-		service: service,
+	return &AuthHandler{
+		service:  service,
 		validate: validator.New(),
 	}
 }
 
-func (h *AuthHandler) Login( w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Method not allowed",
-		})
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
-    var loginReq models.LoginRequest
-    if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": "Invalid request format",
-        })
-        return
-    }
-
-	if err := h.validate.Struct(loginReq); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": err.Error(),
-        })
-        return
+	var loginReq models.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Malformed json in request body"), http.StatusBadRequest)
+		return
 	}
 
-    sessionID, err := h.service.Login(loginReq.LoginName, loginReq.Password.Password)
-    if err != nil {
-        w.WriteHeader(http.StatusUnauthorized)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": err.Error(),
-        })
-        return
-    }
+	if err := h.validate.Struct(loginReq); err != nil {
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
+		return
+	}
 
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(models.LoginResponse{
-        SessionID: sessionID,
-    })
+	sessionID := h.service.Login(loginReq.LoginName, loginReq.Password.Password)
+	if sessionID == "" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Fehler beim einloggen"), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(models.LoginResponse{
+		SessionID: sessionID,
+	})
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(models.AddUserResponse{
-			Result:  false,
-			Message: "Method not allowed",
-		})
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
 		return
 	}
 
-    var logoutReq models.LogoutRequest
-    if err := json.NewDecoder(r.Body).Decode(&logoutReq); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(models.LogoutResponse{
-            Result: false,
-        })
-        return
-    }
-
-	if err := h.validate.Struct(logoutReq); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-        json.NewEncoder(w).Encode(map[string]string{
-            "error": err.Error(),
-        })
-        return
+	var logoutReq models.LogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&logoutReq); err != nil {
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Malformed json in request body"), http.StatusBadRequest)
+		return
 	}
 
-    success := h.service.Logout(logoutReq.Session, logoutReq.LoginName)
-    
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(models.LogoutResponse{
-        Result: success,
-    })
+	if err := h.validate.Struct(logoutReq); err != nil {
+		fmt.Println(err)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
+		return
+	}
+
+	if !h.service.ValidSession(logoutReq.LoginName, logoutReq.Session) {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid session id or username"), http.StatusBadRequest)
+		return
+	}
+
+	success := h.service.Logout(logoutReq.Session, logoutReq.LoginName)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(models.LogoutResponse{
+		Result: success,
+	})
 }

@@ -24,36 +24,41 @@ func NewUserService() *UserService {
 	}
 }
 
-func (s *UserService) AddUser(user models.User) (models.AddUserResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (u *UserService) UserExists(username string) bool {
+	u.mu.RLock()
+	defer u.mu.RUnlock()
+	_, ok := u.users[username]
+	return ok
+}
+
+// Adds a user but only if a user with the same login name doesn't already
+// exist. Returns true if the user was created and false otherwise
+func (s *UserService) AddUser(user models.User) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
 	if _, exists := s.users[user.LoginName]; exists {
-		return models.AddUserResponse{
-			Result:  false,
-			Message: "User already exists",
-		}, errors.New("user already exists")
+		return false
 	}
 
 	s.users[user.LoginName] = user
 
-	return models.AddUserResponse{
-		Result:  true,
-		Message: "User created successfully",
-	}, nil
+	return true
 }
 
-func (s *UserService) Login(loginName, password string) (string, error) {
+// Only returns a valid session id when user exists and credentials are correct.
+// Otherwise an empty string is returned
+func (s *UserService) Login(loginName, password string) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	user, exists := s.users[loginName]
 	if !exists {
-		return "", errors.New("invalid credentials")
+		return ""
 	}
 
 	if user.Password.Password != password {
-		return "", errors.New("invalid credentials")
+		return ""
 	}
 
 	sessionID := uuid.New().String()
@@ -63,7 +68,7 @@ func (s *UserService) Login(loginName, password string) (string, error) {
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	return sessionID, nil
+	return sessionID
 }
 
 func (s *UserService) GetUser(loginName, sessionID string) (models.User, error) {
@@ -162,6 +167,9 @@ func (u *UserService) GetStandortOfUser(username string) (*models.Location, erro
 	}
 
 	// User currently has no entered location, so take his home adress instead
+	if user.ZipCode == nil || user.Country == nil {
+		return nil, fmt.Errorf("user has no location set")
+	}
 	location, err := pkg.GetLocationByAdress(*user.ZipCode, *user.Country)
 	if err != nil {
 		return nil, err
