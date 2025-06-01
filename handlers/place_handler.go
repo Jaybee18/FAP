@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fap-server/models"
 	"fap-server/services"
 	"fmt"
 	"io"
@@ -39,6 +40,83 @@ func NewPlaceHandler(service *services.UserService) *PlaceHandler {
 		service:  service,
 		validate: validator.New(),
 	}
+}
+
+// TODO request body validation
+func (p *PlaceHandler) SetStandortHandler(response http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPut {
+		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	rawBody, err := io.ReadAll(request.Body)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	var req models.SetStandortRequest
+	err = json.Unmarshal(rawBody, &req)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	err = p.service.SetStandortOfUser(req.LoginName, req.Location)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(response).Encode(map[string]string{
+		"ergebnis": "erfolgreich",
+	})
+}
+
+func (p *PlaceHandler) GetStandortHandler(response http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		http.Error(response, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := request.URL.Query()
+	loginName := query.Get("login")
+	sessionId := query.Get("session")
+	searchName := query.Get("id")
+
+	if loginName == "" || sessionId == "" || searchName == "" {
+		http.Error(response, "login, session und id sind erforderliche query parameter", http.StatusBadRequest)
+		return
+	}
+
+	if !p.service.ValidSession(loginName, sessionId) {
+		http.Error(response, "Session is invalid", http.StatusUnauthorized)
+		return
+	}
+
+	location, err := p.service.GetStandortOfUser(searchName)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	standort := models.Standort{
+		Location: *location,
+	}
+	rawJson, err := json.Marshal(standort)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(response, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	response.Header().Set("Content-Type", "application/json")
+	response.Write(rawJson)
 }
 
 func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Request) {

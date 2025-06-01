@@ -20,9 +20,11 @@ func main() {
 	http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.Logout)
 
 	http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
-	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser)
+	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUser) // todo falsch!
 	http.HandleFunc("/FAPServer/service/fapservice/checkLoginName", userHandler.CheckLoginName)
 
+	http.HandleFunc("/FAPServer/service/fapservice/getStandort", placeHandler.GetStandortHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/setStandort", placeHandler.SetStandortHandler)
 	http.HandleFunc("/FAPServer/service/fapservice/getStandortPerAdresse", placeHandler.GetStandortPerAdresseHandler)
 	http.HandleFunc("/FAPServer/service/fapservice/getOrt", placeHandler.GetOrtHandler)
 
