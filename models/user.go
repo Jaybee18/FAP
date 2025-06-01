@@ -52,8 +52,14 @@ type GetUserRequest struct {
 	Location  *Location `json:"standort,omitempty"`
 }
 
-type GetUserResponse struct {
-	UserList []User `json:"benutzerListe"`
+type GetUserResponseUser struct {
+	FirstName string `json:"vorname"`
+	LastName  string `json:"nachname"`
+	LoginName string `json:"loginName"`
+}
+
+type GetUsersResponse struct {
+	UserList []GetUserResponseUser `json:"benutzerListe"`
 }
 
 type Standort struct {

@@ -87,6 +87,13 @@ func (s *UserService) GetUser(loginName, sessionID string) (models.User, error) 
 	return user, nil
 }
 
+func (s *UserService) GetAllUsers() map[string]models.User {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.users
+}
+
 func (s *UserService) Logout(sessionID, loginName string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()

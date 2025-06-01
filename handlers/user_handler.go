@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fap-server/models"
 	"fap-server/services"
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -67,7 +68,7 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodGet {
@@ -92,48 +93,29 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	// Get login from query param or body
 	loginName := r.URL.Query().Get("login")
 
-	// keine ahnung wieso er hier auch noch den Body übergeben will. In Body ist auch eine Location übergeben!
-	var requestBody models.GetUserRequest
-	if r.Body != http.NoBody {
-		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "invalid request body",
-			})
-			return
-		}
-		if loginName == "" {
-			loginName = requestBody.LoginName
-		}
-	}
-
-	if err := h.validate.Struct(requestBody); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
-		})
+	if !h.service.ValidSession(loginName, sessionID) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	user, err := h.service.GetUser(loginName, sessionID)
-	if err != nil {
-		status := http.StatusInternalServerError
-		if err.Error() == "invalid session" || err.Error() == "session expired" {
-			status = http.StatusUnauthorized
-		} else if err.Error() == "user not found" {
-			status = http.StatusNotFound
-		}
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+	users := h.service.GetAllUsers()
+	var resp models.GetUsersResponse
+	for _, user := range users {
+		resp.UserList = append(resp.UserList, models.GetUserResponseUser{
+			LoginName: user.LoginName,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
 		})
+	}
+	rawJson, err := json.Marshal(resp)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(models.GetUserResponse{
-		UserList: []models.User{user},
-	})
+	w.Write(rawJson)
 }
 
 func (h *UserHandler) CheckLoginName(response http.ResponseWriter, request *http.Request) {
