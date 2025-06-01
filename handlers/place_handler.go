@@ -13,23 +13,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type GeoJSONResponse struct {
-	Features []Feature `json:"features"`
-}
-
-type Feature struct {
-	Geometry Geometry `json:"geometry"`
-}
-
-type Geometry struct {
-	Coordinates []float64 `json:"coordinates"`
-}
-
-type EncodedAddress struct {
-	Longitude float64 `json:"lon"`
-	Latitude  float64 `json:"lat"`
-}
-
 type PlaceHandler struct {
 	service  *services.UserService
 	validate *validator.Validate
@@ -126,7 +109,6 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 	}
 
 	query := request.URL.Query()
-
 	country := query.Get("land")
 	postalCode := query.Get("plz")
 	place := query.Get("ort")
@@ -137,50 +119,14 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 		return
 	}
 
-	geoapifyBaseUrl := "https://api.geoapify.com/v1/geocode/search"
-	params := url.Values{}
-	params.Add("text", fmt.Sprintf("%s, %s, %s, %s", street, postalCode, place, country))
-	params.Add("apiKey", "14c70f396ee04ffeab069ef7167d37ea")
-	geoapifyUrl := fmt.Sprintf("%s?%s", geoapifyBaseUrl, params.Encode())
-
-	geoapifyResponse, geoapifyError := http.Get(geoapifyUrl)
-	defer geoapifyResponse.Body.Close()
-
-	if geoapifyResponse.StatusCode != http.StatusOK || geoapifyError != nil {
-		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
-		return
-	}
-
-	bodyAsBytes, err := io.ReadAll(geoapifyResponse.Body)
+	coordinates, err := pkg.GetLocationByAdressGeoapify(country, postalCode, place, street)
 	if err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
 		return
 	}
 
-	var geoapifyJson GeoJSONResponse
-	err = json.Unmarshal(bodyAsBytes, &geoapifyJson)
-	if err != nil {
-		fmt.Println(err)
-		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
-		return
-	}
-
-	features := geoapifyJson.Features
-	if len(features) < 1 {
-		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
-		return
-	}
-
-	coordinates := features[0].Geometry.Coordinates
-
-	encodedAdress := &EncodedAddress{
-		Longitude: coordinates[0],
-		Latitude:  coordinates[1],
-	}
-
-	coordinatesJson, err := json.Marshal(encodedAdress)
-
+	coordinatesJson, err := json.Marshal(coordinates)
 	if err != nil {
 		fmt.Println(err)
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Internal Server Error"), http.StatusInternalServerError)
@@ -191,6 +137,10 @@ func (h *PlaceHandler) GetStandortPerAdresseHandler(response http.ResponseWriter
 	response.Write(coordinatesJson)
 }
 
+// GetOrtHandler just calls the geonames api and forwards the response body without
+// making any changes or processing it in any way. This means that the responses are
+// probably different from the rest of the api, but the way the endpoint is described
+// it is only meant to be a proxy to the geonames api.
 func (h *PlaceHandler) GetOrtHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)

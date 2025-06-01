@@ -42,13 +42,13 @@ func (h *UserHandler) AddUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.validate.Struct(user); err != nil {
 		fmt.Println(err)
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
 		return
 	}
 
 	userExists := h.service.UserExists(user.LoginName)
 	if userExists {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", fmt.Sprintf("Benutzer mit dem Namen %q existiert bereits", user.LoginName)), http.StatusConflict)
+		return
 	}
 
 	// Return value can be ignored since the user cannot already exist
@@ -69,17 +69,15 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get session from query param
-	sessionID := r.URL.Query().Get("session")
-	if sessionID == "" {
-		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "session ist ein erforderlicher parameter"), http.StatusBadRequest)
+	sessionId := r.URL.Query().Get("session")
+	loginName := r.URL.Query().Get("login")
+
+	if sessionId == "" || loginName == "" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "session und login sind erforderliche parameter"), http.StatusBadRequest)
 		return
 	}
 
-	// Get login from query param or body
-	loginName := r.URL.Query().Get("login")
-
-	if !h.service.ValidSession(loginName, sessionID) {
+	if !h.service.ValidSession(loginName, sessionId) {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unauthorized"), http.StatusUnauthorized)
 		return
 	}

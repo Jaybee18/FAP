@@ -16,8 +16,8 @@ func main() {
 	placeHandler := handlers.NewPlaceHandler(userService)
 
 	// Setup routes
-	http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.Login)
-	http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.Logout)
+	http.HandleFunc("/FAPServer/service/fapservice/login", authHandler.LoginHandler)
+	http.HandleFunc("/FAPServer/service/fapservice/logout", authHandler.LogoutHandler)
 
 	http.HandleFunc("/FAPServer/service/fapservice/addUser", userHandler.AddUser)
 	http.HandleFunc("/FAPServer/service/fapservice/getBenutzer", userHandler.GetUsers)
