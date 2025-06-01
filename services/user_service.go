@@ -128,10 +128,10 @@ func (u *UserService) GetStandortOfUser(username string) (*models.Location, erro
 	}
 
 	// User currently has no entered location, so take his home adress instead
-	if user.ZipCode == nil || user.Country == nil {
+	if user.Country == nil || user.ZipCode == nil || user.City == nil || user.Street == nil {
 		return nil, fmt.Errorf("user has no location set")
 	}
-	location, err := pkg.GetLocationByAdress(*user.ZipCode, *user.Country)
+	location, err := pkg.GetLocationByAdressGeoapify(*user.Country, *user.ZipCode, *user.City, *user.Street)
 	if err != nil {
 		return nil, err
 	}
