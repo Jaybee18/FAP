@@ -16,6 +16,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
+		return
+	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unsupported Media Type"), http.StatusUnsupportedMediaType)
+		return
+	}
+
 	var loginReq models.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
 		fmt.Println(err)
@@ -46,6 +56,16 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
+		return
+	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unsupported Media Type"), http.StatusUnsupportedMediaType)
 		return
 	}
 

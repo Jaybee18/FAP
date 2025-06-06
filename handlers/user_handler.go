@@ -36,6 +36,16 @@ func AddUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
+		return
+	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Unsupported Media Type"), http.StatusUnsupportedMediaType)
+		return
+	}
+
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -71,6 +81,11 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet {
 		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
 		return
 	}
 

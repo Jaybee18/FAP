@@ -16,6 +16,16 @@ func SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	if request.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
+		return
+	}
+
+	if request.Header.Get("Content-Type") != "application/json" {
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Unsupported Media Type"), http.StatusUnsupportedMediaType)
+		return
+	}
+
 	rawBody, err := io.ReadAll(request.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -58,6 +68,11 @@ func SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 func GetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	if request.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
 		return
 	}
 
