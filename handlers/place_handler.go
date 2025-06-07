@@ -10,6 +10,12 @@ import (
 	"net/url"
 )
 
+/*
+Handler for the /setStandort route
+Requires method PUT
+Requires Content-Type application/json
+Returns Content-Type application/json
+*/
 func SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPut {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
@@ -65,6 +71,11 @@ func SetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	})
 }
 
+/*
+Handler for the /getStandort route
+Requires method GET
+Returns Content-Type application/json
+*/
 func GetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
@@ -112,6 +123,11 @@ func GetStandortHandler(response http.ResponseWriter, request *http.Request) {
 	response.Write(rawJson)
 }
 
+/*
+Handler for the /getStandortPerAdresse route
+Requires method GET
+Returns Content-Type application/json
+*/
 func GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)
@@ -151,6 +167,9 @@ func GetStandortPerAdresseHandler(response http.ResponseWriter, request *http.Re
 // making any changes or processing it in any way. This means that the responses are
 // probably different from the rest of the api, but the way the endpoint is described
 // it is only meant to be a proxy to the geonames api.
+// Handler for the /getOrt route
+// Requires method GET
+// Returns Content-Type application/json
 func GetOrtHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method Not Allowed"), http.StatusMethodNotAllowed)

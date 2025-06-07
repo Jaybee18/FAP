@@ -28,6 +28,12 @@ func init() {
 	}()
 }
 
+/*
+Handler for the /addUser route
+Requires method POST
+Requires Content-Type application/json
+Returns Content-Type application/json
+*/
 func AddUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -76,6 +82,11 @@ func AddUserHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+/*
+Handler for the /getBenutzer route
+Requires method GET
+Returns Content-Type application/json
+*/
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -122,11 +133,21 @@ func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(rawJson)
 }
 
+/*
+Handler for the /checkLoginName route
+Requires method GET
+Returns Content-Type application/json
+*/
 func CheckLoginNameHandler(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
 
 	if request.Method != http.MethodGet {
 		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Method not allowed"), http.StatusMethodNotAllowed)
+		return
+	}
+
+	if request.Header.Get("Accept") != "application/json" {
+		pkg.JsonError(response, pkg.GenericResponseJson("Fehler", "Not acceptable"), http.StatusNotAcceptable)
 		return
 	}
 
