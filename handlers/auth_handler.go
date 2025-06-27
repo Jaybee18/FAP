@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+/*
+Handler for the /login route
+Requires method POST
+Requires Content-Type application/json
+Returns Content-Type application/json
+*/
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -51,6 +57,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+/*
+Handler for the /logout route
+Requires method POST
+Requires Content-Type application/json
+Returns Content-Type application/json
+*/
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

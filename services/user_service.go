@@ -23,6 +23,9 @@ func NewUserService() *UserService {
 	}
 }
 
+// UserExists tries accessing the entry in the user list
+// with the given username as the key. When this operation
+// succeeds, the user exists. Otherwise he doesn't exist.
 func (s *UserService) UserExists(username string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -36,7 +39,7 @@ func (s *UserService) AddUser(user models.User) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.users[user.LoginName]; exists {
+	if s.UserExists(user.LoginName) {
 		return false
 	}
 
@@ -77,6 +80,10 @@ func (s *UserService) GetAllUsers() map[string]models.User {
 	return s.users
 }
 
+// Logout checks if the given username / session combination is valid
+// and deletes the session from the session store if that is the case.
+// It returns true if the deletion was successfull and false if the
+// deletion fails for any reason
 func (s *UserService) Logout(sessionID, loginName string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -91,6 +98,9 @@ func (s *UserService) Logout(sessionID, loginName string) bool {
 	return false
 }
 
+// CleanupSessions captures the current time and iterates through the
+// stored list of sessions to delete (aka. invalidate) every session
+// that has an expiry timestamp that lies in the past
 func (s *UserService) CleanupSessions() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -103,6 +113,9 @@ func (s *UserService) CleanupSessions() {
 	}
 }
 
+// ValidSession verifies if a given username / session combination is valid.
+// A session is valid for a given username if it exists and the username
+// matches the username stored in the session and the session is not expired
 func (s *UserService) ValidSession(username string, sessionID string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -111,6 +124,10 @@ func (s *UserService) ValidSession(username string, sessionID string) bool {
 	return exists && session.UserID == username && time.Now().Before(session.ExpiresAt)
 }
 
+// GetStandortOfUser determines the current location of the given user. It does
+// so by first looking up if the user has a current stored location. If he doesn't
+// have a stored location, his location is determined by requesting the coordinates
+// of his stored home address via api.
 func (s *UserService) GetStandortOfUser(username string) (*models.Location, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -139,6 +156,7 @@ func (s *UserService) GetStandortOfUser(username string) (*models.Location, erro
 	return &location, nil
 }
 
+// SetStandortOfUser assigns the given location to the given user
 func (s *UserService) SetStandortOfUser(username string, location models.Location) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
