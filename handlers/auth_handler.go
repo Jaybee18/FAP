@@ -35,13 +35,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := validator.Struct(loginReq); err != nil {
 		fmt.Println(err)
-		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body or credentials"), http.StatusUnauthorized)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
 		return
 	}
 
 	sessionID := userService.Login(loginReq.LoginName, loginReq.Password.Password)
 	if sessionID == "" {
-		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Fehler beim einloggen"), http.StatusBadRequest)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Fehler beim einloggen"), http.StatusUnauthorized)
 		return
 	}
 
