@@ -35,7 +35,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := validator.Struct(loginReq); err != nil {
 		fmt.Println(err)
-		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body"), http.StatusBadRequest)
+		pkg.JsonError(w, pkg.GenericResponseJson("Fehler", "Invalid body or credentials"), http.StatusUnauthorized)
 		return
 	}
 
